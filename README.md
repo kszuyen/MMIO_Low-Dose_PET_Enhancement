@@ -4,5 +4,8 @@
 ```
 conda create -n mmio_lowdose_pt_enhancement
 conda activate mmio_lowdose_pt_enhancement
-pip install -r requirements
+pip install -r requirements.txt
 ```
+
+## SPLIT PATIENTS
+`python split.py`
