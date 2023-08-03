@@ -15,3 +15,6 @@ Install other required packages
 pip install -r requirements.txt
 ```
 
+## START TRAINING
+
+# Modify parameters in `train.sh`
