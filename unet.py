@@ -1,5 +1,10 @@
 import torch
 import torch.nn as nn
+import torchvision.transforms.functional as TF
+
+""" Reference:
+https://github.com/aladdinpersson/Machine-Learning-Collection/blob/master/ML/Pytorch/image_segmentation/semantic_segmentation_unet/model.py
+"""
 
 class DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -17,9 +22,8 @@ class DoubleConv(nn.Module):
         return self.conv(x)
 
 class UNET(nn.Module):
-    def __init__(self, in_ch=3, out_ch=1, image_size=128, features=[64, 128, 256, 512]):
+    def __init__(self, in_ch=3, out_ch=1, features=[64, 128, 256, 512]):
         super().__init__()
-        # self.image_size = image_size
         self.ups = nn.ModuleList()
         self.downs = nn.ModuleList()
         self.pool = nn.MaxPool2d(2, 2)
@@ -54,13 +58,16 @@ class UNET(nn.Module):
             x = self.ups[idx](x)
             skip_connection = skip_connections[idx//2]
 
+            if x.shape != skip_connection.shape:
+                x = TF.resize(x, skip_connection.shape[2:])
+
             concat_skip = torch.cat((skip_connection, x), dim=1)
             x = self.ups[idx+1](concat_skip)  # double conv
         
         return self.finalConv(x)
 
 def test():
-    x = torch.rand((6, 3, 256, 256))
+    x = torch.rand((6, 3, 91, 109)) # mni space size
 
     model = UNET()
 

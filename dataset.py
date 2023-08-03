@@ -7,7 +7,7 @@ from scipy.ndimage import rotate
 import cv2
 
 class NTUH_dataset(Dataset):
-    def __init__(self, root_dir, dataset_type="train", case=4, min_max_scaler=None, DataAugmentation=False):
+    def __init__(self, root_dir, dataset_type="train", case=4, min_max_scaler=None, DataAugmentation=False, resize_image_size=False):
         super().__init__()
         self.root_dir = root_dir
         self.dataset_type = dataset_type
@@ -15,6 +15,7 @@ class NTUH_dataset(Dataset):
         self.train_files = os.listdir(os.path.join(root_dir, dataset_type, "data"))
         self.DataAugmentation = DataAugmentation
         self.min_max_scaler = min_max_scaler
+        self.resize_image_size = resize_image_size
         if case == 1: # PT only
             self.min_max_scaler = [self.min_max_scaler[2]]
         elif case == 2: # CT & PT
@@ -89,9 +90,11 @@ class NTUH_dataset(Dataset):
             ground_truth = transforms.Lambda(lambda p: (p-self.min_max_scaler[-1][0])/(self.min_max_scaler[-1][1]-self.min_max_scaler[-1][0]))(ground_truth)
             transform = transforms.Lambda(lambda p: (p * 2) - 1)
             data, ground_truth = transform(data), transform(ground_truth)
-        
-        resize = transforms.Resize((256, 256))
-        return resize(data), resize(ground_truth)
+
+        if self.resize_image_size:
+            resize = transforms.Resize(self.resize_image_size)
+            data, ground_truth= resize(data), resize(ground_truth)
+        return data, ground_truth
 
 def reverse_normalize(scaler=(0, 27163.332477808)):
     if scaler:

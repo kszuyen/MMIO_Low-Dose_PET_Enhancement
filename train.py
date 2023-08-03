@@ -11,7 +11,6 @@ from tqdm import tqdm
 from calculate_min_max_scaler import calculate_min_max_scaler
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 def get_parser():
@@ -19,12 +18,13 @@ def get_parser():
     parser.add_argument("--project_name", "-P", type=str)
     parser.add_argument("--data_dir", help="2d data directory", type=str, default="/home/kszuyen/project/2d_data_EarlyFrame")
     parser.add_argument("--load_model", help="Load trained model if True", type=utils.str2bool, default='true')
-    parser.add_argument("--image_size", help="training image size", type=int, default=256)
+    # parser.add_argument("--image_size", help="training image size", type=int, default=256)
     parser.add_argument("--batch_size", help="training batch size", type=int, default=16)
     parser.add_argument("--learning_rate", help="training learning rate", type=float, default=2e-5)
     parser.add_argument("--num_epochs", help="training epochs", type=int, default=300)
     parser.add_argument("--fold", help="specify current fold (1~10)", type=int, default=1)
     parser.add_argument("--plot", type=utils.str2bool, default='false')
+    parser.add_argument("--cuda", type=int, default=0)
     parser.add_argument(
         "--case", 
         help="""
@@ -49,12 +49,13 @@ def load_config(args):
     cfg.data_dir = os.path.join(DIR_PATH, f"2d_data_{args.project_name}_fold{args.fold}")
     cfg.case = args.case
     cfg.out_channels = 1
-    cfg.image_size = args.image_size
+    # cfg.image_size = args.image_size
     cfg.batch_size = args.batch_size
     cfg.learning_rate = args.learning_rate
     cfg.num_epochs = args.num_epochs
     cfg.fold = args.fold
     cfg.plot = args.plot
+    cfg.cuda = args.cuda
     # min_max_scaler = args.scaler # min and max value of CT, MR, PT
 
     root_dir = os.path.join(DIR_PATH, "results", cfg.project_name, f"fold{cfg.fold}")
@@ -172,8 +173,17 @@ if __name__ == "__main__":
     print("Training with config:")
     pprint.pprint(cfg)
 
+    """ set cuda """
+    if not torch.cuda.is_available():
+        device = torch.device('cpu')
+    elif cfg.cuda == 1:
+        device = torch.device('cuda:1')
+    else:
+        device = torch.device('cuda:0')
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}.")
     """  load model  """
-    model = UNET(in_ch=cfg.in_channels, out_ch=cfg.out_channels, image_size=cfg.image_size).to(device)
+    model = UNET(in_ch=cfg.in_channels, out_ch=cfg.out_channels).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.learning_rate)
     criterion = nn.MSELoss() # MSSSIM(), nn.L1Loss(), nn.MSELoss()
     if cfg.load_model and os.path.exists(cfg.ckpt_dir):

@@ -5,9 +5,6 @@ import nibabel as nib
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
-GROUND_TRUTH = "PET_Coreg_Avg"
-Z_SCLICES = 47
-
 def make_dir_if_not_exist(dir):
     if not os.path.isdir(dir):
         os.mkdir(dir)
@@ -36,9 +33,8 @@ def main():
         MODALITIES = ["CT_RemoveTable_PET", "MR_PET", "Early_Frame", "PET_Coreg_Avg"] # Early Frame
     elif P == "LowDose_with_T1":
         MODALITIES = ["CT_RemoveTable_PET", "T1_PET", "PET", "PET_Coreg_Avg"] # Low Dose (MR changes from T2 to T1)
-
+    GROUND_TRUTH = MODALITIES[4]
     print(f"Fold: {FOLD}")
-
     
     all_patient_files = [f for f in os.listdir(data_dir) if not f.startswith('.')] # 排除 “.DS_store“
     # patient_files = [f for f in all_patient_files if set(MODALITIES).issubset(os.listdir(os.path.join(data_dir, f)))] # 只保留包含所有需要資料的病人
