@@ -16,5 +16,3 @@ Install other required packages
 pip install -r requirements.txt
 ```
 
-## SPLIT PATIENTS
-`python split.py`
