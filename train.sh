@@ -16,5 +16,5 @@ do
     do
         python $(dirname "${BASH_SOURCE[0]}")/train.py -P $P_NAME --case $CASE --num_epochs $NUM_EPOCHS --fold $FOLD --learning_rate $LEARNING_RATE --cuda $CUDA
     done
-    # rm -rf $(dirname "${BASH_SOURCE[0]}")/2d_data_"${P}"_fold"${FOLD}"
+    # rm -rf $(dirname "${BASH_SOURCE[0]}")/2d_data_"${P_NAME}"_fold"${FOLD}"/
 done
