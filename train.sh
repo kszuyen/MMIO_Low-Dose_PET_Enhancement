@@ -1,8 +1,8 @@
 #!/bin/bash
 
-DATA_DIR="/home/kszuyen/project/Final_pre/PIBNii_MPR_T1"
-P_NAME="LowDose"
-TOTAL_FOLD=8
+DATA_DIR="/home/kszuyen/PIBNii_MPR_T1"
+P_NAME="LowDose_with_T1"
+TOTAL_FOLD=10
 JSON_FILE="${TOTAL_FOLD}fold.json"
 NUM_EPOCHS=800
 LEARNING_RATE=0.00001

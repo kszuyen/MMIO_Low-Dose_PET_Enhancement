@@ -1,117 +1,79 @@
-import os, sys, json, argparse
-# import random
-import numpy as np
-import nibabel as nib
+import torch
+import torch.nn as nn
+import torchvision.transforms.functional as TF
 
-DIR_PATH = os.path.dirname(os.path.realpath(__file__))
+""" Reference:
+https://github.com/aladdinpersson/Machine-Learning-Collection/blob/master/ML/Pytorch/image_segmentation/semantic_segmentation_unet/model.py
+"""
 
-def make_dir_if_not_exist(dir):
-    if not os.path.isdir(dir):
-        os.mkdir(dir)
-    else:
-        print("Failed: Out File already exist, cannot make new directory.")
-        sys.exit()
+class DoubleConv(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(DoubleConv, self).__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_channels, out_channels, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+        )
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--project_name", "-P",help="select [EarlyFrame] or [LowDose]", type=str)
-    parser.add_argument("--total_fold", help="total fold number", type=int, default=10)
-    parser.add_argument("--fold", help="specify current fold [1~total_fold]", type=int, default=1)
-    parser.add_argument("--data_dir", help="original nifti data directory", type=str, default="/home/kszuyen/project/PIBNii_Final")
-    parser.add_argument("--json_file", help="json file for spliting into k fold", type=str)
-    args = parser.parse_args()
-    P = args.project_name
-    K = args.total_fold
-    FOLD = args.fold
-    json_file = args.json_file
+    def forward(self, x):
+        return self.conv(x)
 
-    data_dir = args.data_dir
-    outfile = os.path.join(DIR_PATH, f"2d_data_{P}_fold{FOLD}")
-    if P == "LowDose":
-        MODALITIES = ["CT_RemoveTable_PET", "MR_PET", "PET", "PET_Coreg_Avg"] # Low Dose
-    elif P == "EarlyFrame":
-        MODALITIES = ["CT_RemoveTable_PET", "MR_PET", "Early_Frame", "PET_Coreg_Avg"] # Early Frame
-    elif P == "LowDose_with_T1":
-        MODALITIES = ["CT_RemoveTable_PET", "T1_PET", "PET", "PET_Coreg_Avg"] # Low Dose (MR changes from T2 to T1)
-    GROUND_TRUTH = MODALITIES[3]
-    print(f"Fold: {FOLD}")
-    
-    all_patient_files = [f for f in os.listdir(data_dir) if not f.startswith('.')] # 排除 “.DS_store“
-    # patient_files = [f for f in all_patient_files if set(MODALITIES).issubset(os.listdir(os.path.join(data_dir, f)))] # 只保留包含所有需要資料的病人
-    
-    with open(os.path.join(DIR_PATH, json_file), 'r') as openfile:
-        # Reading from json file
-        json_object = json.load(openfile)
-    # print(json_object)
+class UNET(nn.Module):
+    def __init__(self, in_ch=3, out_ch=1, features=[64, 128, 256, 512]):
+        super().__init__()
+        self.ups = nn.ModuleList()
+        self.downs = nn.ModuleList()
+        self.pool = nn.MaxPool2d(2, 2)
 
-    validation_index = (FOLD + K - 3) % K
-    testing_index = (FOLD + K - 2) % K
-    val_files = json_object[validation_index]
-    test_files = json_object[testing_index]
+        """  Down  """
+        for feature in features:
+            self.downs.append(DoubleConv(in_ch, feature))
+            in_ch = feature
 
-    train_files = [patient for i, j in enumerate(json_object) if i not in (validation_index, testing_index) for patient in j]
-    # print(len(train_files), len(val_files), len(test_files))
-    assert len(set(train_files + val_files + test_files)) == len(all_patient_files)
+        """  Up  """
+        for feature in reversed(features):
+            self.ups.append(nn.ConvTranspose2d(
+                feature*2, feature, kernel_size=2, stride=2))
+            self.ups.append(DoubleConv(feature*2, feature))
 
+        self.bottleneck = DoubleConv(features[-1], features[-1]*2)
+        self.finalConv = nn.Conv2d(features[0], out_ch, 1)
 
-    # total_patient_num = len(patient_files)
+        self.ReLU = nn.ReLU()
 
-    # val_num = round(total_patient_num*0.1)
-    # test_num = round(total_patient_num*0.1)
-    # train_num = total_patient_num - val_num - test_num
+    def forward(self, x):
 
-    # print(f"total available patient num: {total_patient_num}")
-    # print(f"split: {train_num}/{val_num}/{test_num}")
-    # assert train_num + val_num + test_num == total_patient_num
+        skip_connections = []
+        for down in self.downs:
+            x = down(x)
+            skip_connections.append(x)
+            x = self.pool(x)
+        x = self.bottleneck(x)
 
-    # train_files = random.sample(patient_files, train_num)
+        skip_connections = skip_connections[::-1]
+        for idx in range(0, len(self.ups), 2):
+            x = self.ups[idx](x)
+            skip_connection = skip_connections[idx//2]
 
-    # rest = [f for f in patient_files if f not in train_files]
-    # val_files = random.sample(rest, val_num)
-    # test_files = [f for f in rest if f not in val_files]
+            if x.shape != skip_connection.shape:
+                x = TF.resize(x, skip_connection.shape[2:], antialias=True)
 
-    print(f"Training set:\n{train_files}\n")
-    print(f"Validation set:\n{val_files}\n")
-    print(f"Testing set:\n{test_files}\n")
+            concat_skip = torch.cat((skip_connection, x), dim=1)
+            x = self.ups[idx+1](concat_skip)  # double conv
+        
+        return self.finalConv(x)
 
-    print("Processing 3d to 2d...")
-    make_dir_if_not_exist(outfile)
-    for phase, patient_files in zip(["train", "val", "test"], [train_files, val_files, test_files]):
-        make_dir_if_not_exist(os.path.join(outfile, phase))
-        make_dir_if_not_exist(os.path.join(outfile, phase, "data"))
-        make_dir_if_not_exist(os.path.join(outfile, phase, "ground_truth"))
-        for patient in patient_files:
-            image_dict = {}
-            for modality in MODALITIES:
-                # if modality == "PET":
-                #     image_name = [f for f in sorted(os.listdir(os.path.join(data_dir, patient, modality))) if f.endswith('.nii') and f.startswith('s')][-3]
-                # if "CT" in modality:
-                #     image_name = [f for f in os.listdir(os.path.join(data_dir, patient, modality)) if f.endswith('.nii') and f.startswith('modified')][0]
-                # else:
-                image_name = [f for f in os.listdir(os.path.join(data_dir, patient, modality)) if f.endswith('.nii') and f.startswith('CGUN')][0]
-                image_dict[modality] = nib.load(os.path.join(data_dir, patient, modality, image_name)).get_fdata()
-            IMAGE_SHAPE = image_dict[MODALITIES[0]].shape
-            TRAIN_CHANNELS = len(image_dict) - 1
-            for z in range(IMAGE_SHAPE[2]):
-                train_data = np.empty((IMAGE_SHAPE[0], IMAGE_SHAPE[1], TRAIN_CHANNELS))
-                for i, modality in enumerate({m:image_dict[m] for m in image_dict if m!=GROUND_TRUTH}):
-                    train_data[:, :, i] = image_dict[modality][:, :, z]
-                np.save(os.path.join(outfile, phase, "data", f"{patient}_{z}.npy"), train_data)
-                np.save(os.path.join(outfile, phase, "ground_truth", f"{patient}_{z}.npy"), image_dict[GROUND_TRUTH][:,:,z])
-    print("~~~Finished~~~")
+def test():
+    x = torch.rand((6, 3, 91, 109)) # mni space size
 
-    with open(os.path.join(outfile, 'train_val_test_split.txt'), 'w') as f:
-        f.write(f"fold: {FOLD}")
-        f.write(f"split: {len(train_files)}/{len(val_files)}/{len(test_files)}\n")
-        f.write(f"Training set:\n{train_files}\n")
-        f.write(f"Validation set:\n{val_files}\n")
-        f.write(f"Testing set:\n{test_files}\n")
+    model = UNET()
 
-
+    y = model(x)
+    print(torch.min(y), torch.max(y))
+    print(y.shape)
 
 if __name__ == "__main__":
-    main()
-
-
-
-
+    test()
