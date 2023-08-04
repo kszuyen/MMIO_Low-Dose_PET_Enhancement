@@ -182,6 +182,7 @@ if __name__ == "__main__":
         device = torch.device('cuda:0')
     # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}.")
+    
     """  load model  """
     model = UNET(in_ch=cfg.in_channels, out_ch=cfg.out_channels).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.learning_rate)
@@ -229,6 +230,7 @@ if __name__ == "__main__":
         def calculate_orig_score():
             print("calculating original score:")
             running_ssim, running_psnr = 0.0, 0.0
+            count = 0
             for data, gt in tqdm(valid_loader):
                 mini_batch_size = gt.shape[0]
 
@@ -237,12 +239,14 @@ if __name__ == "__main__":
                 for k, i in enumerate(range(mini_batch_size)):
                     pet = reverse_normalize(scaler=min_max_scaler[-1])(data[i][-1]).detach().cpu().numpy()
                     pet_cor = reverse_normalize(scaler=min_max_scaler[-1])(gt[i][0]).detach().cpu().numpy()
+                    psnr = peak_signal_noise_ratio(pet, pet_cor, data_range=min_max_scaler[-1][1]-min_max_scaler[-1][0])
+                    if psnr <= 50:
+                        running_psnr += psnr
+                        running_ssim += structural_similarity(pet, pet_cor, data_range=min_max_scaler[-1][1]-min_max_scaler[-1][0])
+                        count += 1
 
-                    running_psnr += peak_signal_noise_ratio(pet, pet_cor, data_range=min_max_scaler[-1][1]-min_max_scaler[-1][0])
-                    running_ssim += structural_similarity(pet, pet_cor, data_range=min_max_scaler[-1][1]-min_max_scaler[-1][0])
-
-            orig_psnr = running_psnr / len(valid_dataset)
-            orig_ssim = running_ssim / len(valid_dataset)
+            orig_psnr = running_psnr / count
+            orig_ssim = running_ssim / count
             return orig_psnr, orig_ssim
         orig_psnr, orig_ssim = calculate_orig_score()
 
@@ -275,6 +279,7 @@ if __name__ == "__main__":
         running_ssim = 0.0
         running_psnr = 0.0
         running_loss = 0.0
+        count = 0
         model.eval()
 
         loop = tqdm(valid_loader, total=len(valid_loader))
@@ -294,13 +299,16 @@ if __name__ == "__main__":
                 pred = reverse_normalize(scaler=min_max_scaler[-1])(output[i][0]).detach().cpu().numpy()
                 gt = reverse_normalize(scaler=min_max_scaler[-1])(ground_truth[i][0]).detach().cpu().numpy()
 
-                running_psnr += peak_signal_noise_ratio(pred, gt, data_range=min_max_scaler[-1][1]-min_max_scaler[-1][0])
-                running_ssim += structural_similarity(pred, gt, data_range=min_max_scaler[-1][1]-min_max_scaler[-1][0])
+                psnr = peak_signal_noise_ratio(pred, gt, data_range=min_max_scaler[-1][1]-min_max_scaler[-1][0])
+                if psnr <= 50:
+                    running_psnr += psnr
+                    running_ssim += structural_similarity(pred, gt, data_range=min_max_scaler[-1][1]-min_max_scaler[-1][0])
+                    count += 1
 
         valid_loss.append(running_loss / len(valid_dataset))
 
-        new_psnr = running_psnr / len(valid_dataset)
-        new_ssim = running_ssim / len(valid_dataset)
+        new_psnr = running_psnr / count
+        new_ssim = running_ssim / count
         psnr_list.append(new_psnr)
         ssim_list.append(new_ssim)
         print("====================================================================")

@@ -33,7 +33,7 @@ def main():
         MODALITIES = ["CT_RemoveTable_PET", "MR_PET", "Early_Frame", "PET_Coreg_Avg"] # Early Frame
     elif P == "LowDose_with_T1":
         MODALITIES = ["CT_RemoveTable_PET", "T1_PET", "PET", "PET_Coreg_Avg"] # Low Dose (MR changes from T2 to T1)
-    GROUND_TRUTH = MODALITIES[4]
+    GROUND_TRUTH = MODALITIES[3]
     print(f"Fold: {FOLD}")
     
     all_patient_files = [f for f in os.listdir(data_dir) if not f.startswith('.')] # 排除 “.DS_store“
@@ -83,12 +83,12 @@ def main():
         for patient in patient_files:
             image_dict = {}
             for modality in MODALITIES:
-                if modality == "PET":
-                    image_name = [f for f in sorted(os.listdir(os.path.join(data_dir, patient, modality))) if f.endswith('.nii') and f.startswith('s')][-3]
-                if "CT" in modality:
-                    image_name = [f for f in os.listdir(os.path.join(data_dir, patient, modality)) if f.endswith('.nii') and f.startswith('modified')][0]
-                else:
-                    image_name = [f for f in os.listdir(os.path.join(data_dir, patient, modality)) if f.endswith('.nii')][0]
+                # if modality == "PET":
+                #     image_name = [f for f in sorted(os.listdir(os.path.join(data_dir, patient, modality))) if f.endswith('.nii') and f.startswith('s')][-3]
+                # if "CT" in modality:
+                #     image_name = [f for f in os.listdir(os.path.join(data_dir, patient, modality)) if f.endswith('.nii') and f.startswith('modified')][0]
+                # else:
+                image_name = [f for f in os.listdir(os.path.join(data_dir, patient, modality)) if f.endswith('.nii') and f.startswith('CGUN')][0]
                 image_dict[modality] = nib.load(os.path.join(data_dir, patient, modality, image_name)).get_fdata()
             IMAGE_SHAPE = image_dict[MODALITIES[0]].shape
             TRAIN_CHANNELS = len(image_dict) - 1

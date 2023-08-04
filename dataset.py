@@ -4,7 +4,6 @@ import numpy as np
 from torchvision import transforms
 import random
 from scipy.ndimage import rotate
-import cv2
 
 class NTUH_dataset(Dataset):
     def __init__(self, root_dir, dataset_type="train", case=4, min_max_scaler=None, DataAugmentation=False, resize_image_size=False):
@@ -62,20 +61,18 @@ class NTUH_dataset(Dataset):
 
         ### data augmentation ###
         if self.DataAugmentation:
+            # random flipping
             if random.choice([0, 1]):
                 data, ground_truth = np.flipud(data), np.flipud(ground_truth)
-            # random crop
-            if random.choice([0, 1]):
-                l = random.randint(int(h*0.85), h-1)
-                data, ground_truth = random_crop(data, crop_size=(l, l)), random_crop(ground_truth, crop_size=(l, l))
+            
             # translation
             for directions in (['up', 'down'], ['left', 'right']):
-                shift, d = random.randint(0, int(h*0.05)), random.choice(directions)
+                shift, d = random.randint(0, int(h*0.02)), random.choice(directions)
                 if shift:
                     data, ground_truth = translate(data, shift, d), translate(ground_truth, shift, d)
-            
+            # rotation
             if random.choice([0, 1]):
-                angle = random.randint(-15, 15)
+                angle = random.randint(-5, 5)
                 data, ground_truth = rotate_img(data, angle), rotate_img(ground_truth, angle)
         ### data augmentation output shape
         # print(data.shape, ground_truth.shape)
@@ -132,15 +129,6 @@ def translate(img, shift=10, direction='right', roll=False):
         img[:-shift, :] = img[shift:, :]
         if roll:
             img[-shift:,:] = upper_slice
-    return img
-
-def random_crop(img, crop_size=(10, 10)):
-    assert crop_size[0] <= img.shape[0] and crop_size[1] <= img.shape[1], "Crop size should be less than image size"
-    img = img.copy()
-    w, h = img.shape[:2]
-    x, y = np.random.randint(h-crop_size[0]), np.random.randint(w-crop_size[1])
-    img = img[y:y+crop_size[0], x:x+crop_size[1]]
-    img = cv2.resize(img, dsize=(w, h), interpolation=cv2.INTER_LINEAR)
     return img
 
 def rotate_img(img, angle=10, bg_patch=(5,5)):
