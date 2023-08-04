@@ -31,5 +31,8 @@ pip install -r requirements.txt
 > NUM_EPOCHS: max number of epochs for each case
 > LEARNING_RATE: learning rate
 > CUDA: you can specify the gpu you want to train with. Default: 0.
+```
+bash train.sh
+```
 
 
