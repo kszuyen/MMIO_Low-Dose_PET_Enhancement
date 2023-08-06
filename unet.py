@@ -42,8 +42,6 @@ class UNET(nn.Module):
         self.bottleneck = DoubleConv(features[-1], features[-1]*2)
         self.finalConv = nn.Conv2d(features[0], out_ch, 1)
 
-        self.ReLU = nn.ReLU()
-
     def forward(self, x):
 
         skip_connections = []
