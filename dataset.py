@@ -36,13 +36,10 @@ class NTUH_dataset(Dataset):
         PT = data[:,:,2]
         if case == 1: # PT only
             data = np.expand_dims(PT, axis=2)
-
         elif case == 2: # CT & PT
             data = np.stack([CT, PT], axis=2)
-            
         elif case == 3: # MR & PT
             data = np.stack([MR, PT], axis=2)
-                    
         elif case == 4: # CT, MR & PT
             data = data
         else:
@@ -91,17 +88,14 @@ class NTUH_dataset(Dataset):
         if self.resize_image_size:
             resize = transforms.Resize(self.resize_image_size)
             data, ground_truth= resize(data), resize(ground_truth)
-        return data, ground_truth
-
-def reverse_normalize(scaler=(0, 27163.332477808)):
-    if scaler:
-        transform = transforms.Compose([
-            transforms.Lambda(lambda p: (p + 1)/2),
-            transforms.Lambda(lambda p: p*(scaler[1]-scaler[0])+scaler[0])
-        ])
-    else:
-        transform = transforms.Compose([])
-    return transform
+        
+        if self.dataset_type == "test":
+            patient = int(data_name.split('.')[0].split('_')[0][-3:])
+            slc = int(data_name.split('.')[0].split('_')[1])
+            
+            return data, ground_truth, patient, slc
+        else:
+            return data, ground_truth
 
 """  functions for numpy array image augmentations:
 https://medium.com/@schatty/image-augmentation-in-numpy-the-spell-is-simple-but-quite-unbreakable-e1af57bb50fd  """
@@ -145,10 +139,10 @@ def rotate_img(img, angle=10, bg_patch=(5,5)):
 
 if __name__ == "__main__":
     train_dataset = NTUH_dataset(
-        root_dir="/home/kszuyen/project/2d_data_LowDose",
+        root_dir="/home/kszuyen/MMIO_Low-Dose_PET_Enhancement/2d_data_LowDose_with_T1_fold1",
         dataset_type="train",
-        min_max_scaler=[(0, 1), (2, 3), (4, 5)],
-        DataAugmentation=True,
+        min_max_scaler=[(-63.38726043701172, 131.9373779296875), (0.0, 3361.0), (-4348.736393213272, 51885.97814440727)],
+        DataAugmentation=False,
         case=4
     )
     data, gt = train_dataset[0]

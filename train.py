@@ -4,8 +4,8 @@ from torch.utils.data import DataLoader
 import numpy as np
 import os, sys, argparse, pprint
 import matplotlib.pyplot as plt
-import utils
-from dataset import NTUH_dataset, reverse_normalize
+from utils import *
+from dataset import NTUH_dataset
 from unet import UNET
 from tqdm import tqdm
 from calculate_min_max_scaler import calculate_min_max_scaler
@@ -17,13 +17,13 @@ def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--project_name", "-P", type=str)
     parser.add_argument("--data_dir", help="2d data directory", type=str, default="/home/kszuyen/project/2d_data_EarlyFrame")
-    parser.add_argument("--load_model", help="Load trained model if True", type=utils.str2bool, default='true')
+    parser.add_argument("--load_model", help="Load trained model if True", type=str2bool, default='true')
     # parser.add_argument("--image_size", help="training image size", type=int, default=256)
     parser.add_argument("--batch_size", help="training batch size", type=int, default=16)
     parser.add_argument("--learning_rate", help="training learning rate", type=float, default=2e-5)
     parser.add_argument("--num_epochs", help="training epochs", type=int, default=300)
     parser.add_argument("--fold", help="specify current fold (1~10)", type=int, default=1)
-    parser.add_argument("--plot", type=utils.str2bool, default='false')
+    parser.add_argument("--plot", type=str2bool, default='false')
     parser.add_argument("--cuda", type=int, default=0)
     parser.add_argument(
         "--case", 
@@ -38,7 +38,7 @@ def get_parser():
     return parser
 
 def load_config(args):
-    cfg = utils.dotdict(dict())
+    cfg = dotdict(dict())
     if args.project_name:
         cfg.project_name = args.project_name
     else:
@@ -88,7 +88,7 @@ def load_config(args):
         """)
         sys.exit()
     cfg.output_dir = os.path.join(plots_dir, cfg.mod_name)
-    utils.make_dir(cfg.output_dir)
+    make_dir(cfg.output_dir)
     cfg.ckpt_dir = os.path.join(models_dir, f"{cfg.mod_name}.pth")
     cfg.best_ckpt_dir = os.path.join(models_dir, f"{cfg.mod_name}_best.pth")
 
@@ -206,7 +206,6 @@ if __name__ == "__main__":
         best_psnr = 0.0
         train_loss, valid_loss = [], []
         ssim_list, psnr_list = [], []
-
         min_max_scaler = calculate_min_max_scaler(cfg.data_dir)
 
     train_dataset = NTUH_dataset(
@@ -226,31 +225,11 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=cfg.batch_size, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=cfg.batch_size, shuffle=True)
     
-    if not (cfg.load_model and os.path.exists(cfg.ckpt_dir)):
-        def calculate_orig_score():
-            print("calculating original score:")
-            running_ssim, running_psnr = 0.0, 0.0
-            count = 0
-            for data, gt in tqdm(valid_loader):
-                mini_batch_size = gt.shape[0]
+    if not (cfg.load_model and os.path.exists(cfg.ckpt_dir)): # no checkpoint: calculate original score
+        print("calculating original score:")
+        orig_psnr, orig_ssim = calculate_baseline_score(valid_loader, min_max_scaler, device)
+        print(f"Original score: psnr:{orig_psnr} | ssim:{orig_ssim}")
 
-                data, gt = data.to(device, dtype=torch.float), gt.to(device, dtype=torch.float)
-
-                for k, i in enumerate(range(mini_batch_size)):
-                    pet = reverse_normalize(scaler=min_max_scaler[-1])(data[i][-1]).detach().cpu().numpy()
-                    pet_cor = reverse_normalize(scaler=min_max_scaler[-1])(gt[i][0]).detach().cpu().numpy()
-                    psnr = peak_signal_noise_ratio(pet, pet_cor, data_range=min_max_scaler[-1][1]-min_max_scaler[-1][0])
-                    if psnr <= 50:
-                        running_psnr += psnr
-                        running_ssim += structural_similarity(pet, pet_cor, data_range=min_max_scaler[-1][1]-min_max_scaler[-1][0])
-                        count += 1
-
-            orig_psnr = running_psnr / count
-            orig_ssim = running_ssim / count
-            return orig_psnr, orig_ssim
-        orig_psnr, orig_ssim = calculate_orig_score()
-
-    print(f"Original score: psnr:{orig_psnr} | ssim:{orig_ssim}")
     for epoch in range(start_epoch+1, cfg.num_epochs+1):
         print(f"Epoch {epoch}/Case {cfg.case}/Fold {cfg.fold}")
         """  training phase  """

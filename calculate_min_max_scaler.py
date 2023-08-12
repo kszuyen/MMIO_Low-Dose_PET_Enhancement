@@ -43,7 +43,7 @@ def calculate_min_max_scaler(root_dir):
 
 
 if __name__ == "__main__":
-    root_dir = '/home/kszuyen/project/2d_data_Low_Dose'
+    root_dir = "/home/kszuyen/MMIO_Low-Dose_PET_Enhancement/2d_data_LowDose_with_T1_fold1"
 
     min_max = calculate_min_max_scaler(root_dir)
     print("[(ct_min, ct_max), (mr_min, mr_max), (pt_min, pt_max)]: ")
