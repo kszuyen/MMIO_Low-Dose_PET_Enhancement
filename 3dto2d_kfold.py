@@ -2,6 +2,7 @@ import os, sys, json, argparse
 # import random
 import numpy as np
 import nibabel as nib
+import SimpleITK as sitk
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -76,10 +77,12 @@ def main():
 
     print("Processing 3d to 2d...")
     make_dir_if_not_exist(outfile)
+    make_dir_if_not_exist(os.path.join(outfile, "image_info"))
     for phase, patient_files in zip(["train", "val", "test"], [train_files, val_files, test_files]):
         make_dir_if_not_exist(os.path.join(outfile, phase))
         make_dir_if_not_exist(os.path.join(outfile, phase, "data"))
         make_dir_if_not_exist(os.path.join(outfile, phase, "ground_truth"))
+        image_info = dict()
         for patient in patient_files:
             image_dict = {}
             for modality in MODALITIES:
@@ -90,6 +93,14 @@ def main():
                 # else:
                 image_name = [f for f in os.listdir(os.path.join(data_dir, patient, modality)) if f.endswith('.nii') and f.startswith('CGUN')][0]
                 image_dict[modality] = nib.load(os.path.join(data_dir, patient, modality, image_name)).get_fdata()
+                if patient not in image_info:
+
+                    itk_img = sitk.ReadImage(os.path.join(data_dir, patient, modality, image_name))
+                    O = itk_img.GetOrigin()
+                    D = itk_img.GetDirection()
+                    S = itk_img.GetSpacing()
+                    image_info[patient] = (O, D, S)
+
             IMAGE_SHAPE = image_dict[MODALITIES[0]].shape
             TRAIN_CHANNELS = len(image_dict) - 1
             for z in range(IMAGE_SHAPE[2]):
@@ -99,7 +110,8 @@ def main():
                 if not np.isnan(train_data).any() and not np.isnan(image_dict[GROUND_TRUTH][:,:,z]).any():
                     np.save(os.path.join(outfile, phase, "data", f"{patient}_{z}.npy"), train_data)
                     np.save(os.path.join(outfile, phase, "ground_truth", f"{patient}_{z}.npy"), image_dict[GROUND_TRUTH][:,:,z])
-
+        for patient in image_info:
+            np.save(os.path.join(outfile, "image_info", f"{patient}.npy"), np.array(image_info[patient], dtype=object))
     print("~~~Finished~~~")
 
     with open(os.path.join(outfile, 'train_val_test_split.txt'), 'w') as f:
@@ -113,7 +125,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
 
