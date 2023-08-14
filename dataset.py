@@ -90,7 +90,7 @@ class NTUH_dataset(Dataset):
             data, ground_truth= resize(data), resize(ground_truth)
         
         if self.dataset_type == "test":
-            patient = int(data_name.split('.')[0].split('_')[0][-3:])
+            patient = data_name.split('.')[0].split('_')[0]
             slc = int(data_name.split('.')[0].split('_')[1])
             
             return data, ground_truth, patient, slc
