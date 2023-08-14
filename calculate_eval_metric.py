@@ -11,9 +11,10 @@ from tqdm import tqdm
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
-def load_config(project_name, fold, case, batch_size):
+def load_config(project_name, project_results_dir, fold, case, batch_size):
     cfg = dotdict(dict())
     cfg.project_name = project_name
+    cfg.project_results_dir = project_results_dir
 
     cfg.data_dir = os.path.join(DIR_PATH, f"2d_data_{project_name}_fold{fold}")
     cfg.case = case
@@ -41,8 +42,8 @@ def load_config(project_name, fold, case, batch_size):
         """)
         sys.exit()
 
-    root_dir = os.path.join(DIR_PATH, "results", cfg.project_name, f"fold{fold}")
-    models_dir = os.path.join(root_dir, "models_file")
+    # root_dir = os.path.join(DIR_PATH, "results", cfg.project_name, f"fold{fold}")
+    models_dir = os.path.join(project_results_dir, f"fold{fold}", "models_file")
     cfg.best_ckpt_dir = os.path.join(models_dir, f"{cfg.mod_name}_best.pth")
 
     return cfg
@@ -54,12 +55,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--project_name", "-P",help="select [EarlyFrame] or [LowDose]", type=str)
     parser.add_argument("--json_file", type=str)
-    parser.add_argument("--results_file", type=str)
+    parser.add_argument("--project_results_dir", type=str)
     parser.add_argument("--batch_size", type=int, default=4)
     args = parser.parse_args()
     project_name = args.project_name
     json_file = args.json_file
-    results_file = args.results_file
+    project_results_dir = args.project_results_dir
     batch_size = args.batch_size
 
     patient_list = []
@@ -78,7 +79,7 @@ if __name__ == "__main__":
             CALCULATED = False
 
             for case in range(1, 5):
-                cfg = load_config(project_name, fold, int(case), batch_size=batch_size)
+                cfg = load_config(project_name, project_results_dir, fold, int(case), batch_size=batch_size)
                 if os.path.exists(cfg.best_ckpt_dir): # if chechpoint exists
                     # load model and checkpoint
                     model = UNET(in_ch=cfg.in_channels, out_ch=cfg.out_channels).to(device)
