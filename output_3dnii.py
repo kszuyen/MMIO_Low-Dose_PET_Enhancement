@@ -112,7 +112,7 @@ if __name__ == "__main__":
     print("Preparing....")
     ct_pad_value, mr_pad_value, pt_pad_value = calculate_min_value(os.path.join(DIR_PATH, f"2d_data_{project_name}_fold1"))
     
-    output_dir = os.path.join(DIR_PATH, +f'output_3dnifti_{project_name}')
+    output_dir = os.path.join(DIR_PATH, f'output_3dnifti_{project_name}')
     make_dir(output_dir)
     with open(os.path.join(DIR_PATH, json_file) , 'r') as openfile:
         # Reading from json file
