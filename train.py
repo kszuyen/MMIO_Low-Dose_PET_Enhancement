@@ -16,13 +16,12 @@ DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--project_name", "-P", type=str)
-    parser.add_argument("--data_dir", help="2d data directory", type=str, default="/home/kszuyen/project/2d_data_EarlyFrame")
+    parser.add_argument("--fold", help="specify current fold (1~10)", type=int, default=1)
     parser.add_argument("--load_model", help="Load trained model if True", type=str2bool, default='true')
     # parser.add_argument("--image_size", help="training image size", type=int, default=256)
     parser.add_argument("--batch_size", help="training batch size", type=int, default=16)
     parser.add_argument("--learning_rate", help="training learning rate", type=float, default=2e-5)
     parser.add_argument("--num_epochs", help="training epochs", type=int, default=300)
-    parser.add_argument("--fold", help="specify current fold (1~10)", type=int, default=1)
     parser.add_argument("--plot", type=str2bool, default='false')
     parser.add_argument("--cuda", type=int, default=0)
     parser.add_argument(
@@ -45,8 +44,7 @@ def load_config(args):
         print('Please specify current project name by adding argument "--project_name".')
         sys.exit()
     cfg.load_model = args.load_model
-    # cfg.data_dir = args.data_dir
-    cfg.data_dir = os.path.join(DIR_PATH, f"2d_data_{args.project_name}_fold{args.fold}")
+    cfg.data_dir = os.path.join(DIR_PATH, f"{args.project_name}_2d_data")
     cfg.case = args.case
     cfg.out_channels = 1
     # cfg.image_size = args.image_size
@@ -206,21 +204,23 @@ if __name__ == "__main__":
         best_psnr = 0.0
         train_loss, valid_loss = [], []
         ssim_list, psnr_list = [], []
-        min_max_scaler = calculate_min_max_scaler(cfg.data_dir)
+        min_max_scaler = calculate_min_max_scaler(cfg.data_dir, cfg.fold)
 
     train_dataset = NTUH_dataset(
         root_dir=cfg.data_dir,
         dataset_type="train",
+        fold=cfg.fold,
+        case=cfg.case,
         min_max_scaler=min_max_scaler,
         DataAugmentation=True,
-        case=cfg.case
     )
     valid_dataset = NTUH_dataset(
         root_dir=cfg.data_dir,
         dataset_type="val",
+        fold=cfg.fold,
+        case=cfg.case,
         min_max_scaler=min_max_scaler,
         DataAugmentation=False,
-        case=cfg.case
     )
     train_loader = DataLoader(train_dataset, batch_size=cfg.batch_size, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=cfg.batch_size, shuffle=True)

@@ -5,9 +5,8 @@ import os, argparse, sys, json
 from utils import *
 from unet import UNET
 from dataset import NTUH_dataset
-import numpy as np
 from tqdm import tqdm
-import nibabel as nib
+import matplotlib.pyplot as plt
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -42,21 +41,10 @@ def load_config(project_name, project_results_dir, fold, case, batch_size):
         """)
         sys.exit()
 
-    # root_dir = os.path.join(DIR_PATH, "results", cfg.project_name, f"fold{fold}")
     models_dir = os.path.join(project_results_dir, f"fold{fold}", "models_file")
     cfg.best_ckpt_dir = os.path.join(models_dir, f"{cfg.mod_name}_best.pth")
 
     return cfg
-
-def output_single_nii(np_dict, output_dir, affine, Z_slice=91, pad_value=0):
-    Z = max(np_dict)
-    WH = np_dict[Z].shape
-    np_arr = np.zeros(shape=(WH[0], WH[1], Z+1))
-    np_arr = np.full((WH[0], WH[1], Z_slice), fill_value=pad_value, dtype=float)
-    for z in np_dict:
-        np_arr[:, :, z] = np_dict[z]
-    NII_IMG = nib.Nifti1Image(np_arr, affine=affine)
-    nib.save(NII_IMG, output_dir)
 
 if __name__ == "__main__":
 
@@ -73,10 +61,9 @@ if __name__ == "__main__":
     json_file = os.path.join(DIR_PATH, f"{project_name}_2d_data", "split.json")
     max_z_slice = args.max_z_slice
 
-    print("Preparing....")
     # ct_pad_value, mr_pad_value, pt_pad_value = calculate_min_value(os.path.join(DIR_PATH, f"2d_data_{project_name}_fold1"))
     ct_pad_value, mr_pad_value, pt_pad_value = 0., 0., 0.
-    output_dir = os.path.join(DIR_PATH, f'{project_name}_output_3d_nifti')
+    output_dir = os.path.join(DIR_PATH, f'{project_name}_output_2d_png')
     make_dir(output_dir)
     with open(os.path.join(DIR_PATH, json_file) , 'r') as openfile:
         # Reading from json file
@@ -93,9 +80,9 @@ if __name__ == "__main__":
             ### output mr, ct, pt, gt
             all_mod_3dnparr_dict = dict()
             for patient in testing_patients:
-                # patient = int(patient_fullname[-3:])
+
                 all_mod_3dnparr_dict[patient] = dict()
-                for mod in ['ct', 'mr', 'pt', 'gt']:
+                for mod in ['ct', 'mr', 'pt', 'gt', 'case1', 'case2', 'case3', 'case4']:
                     all_mod_3dnparr_dict[patient][mod] = dict()
 
             test_dataset = NTUH_dataset(
@@ -111,17 +98,6 @@ if __name__ == "__main__":
                 all_mod_3dnparr_dict[patient]['mr'][int(slc)] = data[1].detach().cpu().numpy()
                 all_mod_3dnparr_dict[patient]['pt'][int(slc)] = data[2].detach().cpu().numpy()
                 all_mod_3dnparr_dict[patient]['gt'][int(slc)] = gt[0].detach().cpu().numpy()
-
-            for patient in all_mod_3dnparr_dict:
-                patient_image_info = np.load(os.path.join(DIR_PATH, f"{project_name}_2d_data", "image_info", f"{patient}.npy"), allow_pickle=True)
-                for mod, output_name, pad_value in zip(['ct', 'mr', 'pt', 'gt'], ["CT.nii", "MR.nii", "PT.nii", "GT.nii"], [ct_pad_value, mr_pad_value, pt_pad_value, pt_pad_value]):
-                    output_single_nii(
-                        np_dict=all_mod_3dnparr_dict[patient][mod], 
-                        output_dir=os.path.join(output_dir, patient, output_name),
-                        affine=patient_image_info,
-                        Z_slice=max_z_slice,
-                        pad_value=pad_value
-                    )
             ### 
 
             for case in range(1, 5):
@@ -147,11 +123,6 @@ if __name__ == "__main__":
                         shuffle=False
                     )
                     model.eval()
-
-                    pred_3dnparr_dict = dict()
-
-                    for patient in testing_patients:
-                        pred_3dnparr_dict[patient] = dict()
                         
                     for batch_idx, (batch_data, batch_gt, batch_patient, batch_slc) in enumerate(test_loader):
 
@@ -160,14 +131,49 @@ if __name__ == "__main__":
                         output = model(batch_data)
 
                         for i, (p, s) in enumerate(zip(list(batch_patient), list(batch_slc))):
-                            pred_3dnparr_dict[p][int(s)] = reverse_normalize(scaler=min_max_scaler[2])(output[i][0]).detach().cpu().numpy()
+                            all_mod_3dnparr_dict[p][f"case{case}"] [int(s)] = reverse_normalize(scaler=min_max_scaler[2])(output[i][0]).detach().cpu().numpy()
 
-                    for patient in pred_3dnparr_dict:
-                        patient_image_info = np.load(os.path.join(DIR_PATH, f"{project_name}_2d_data", "image_info", f"{patient}.npy"), allow_pickle=True)
-                        output_single_nii(
-                            np_dict=pred_3dnparr_dict[patient], 
-                            output_dir=os.path.join(output_dir, patient, f"PRED_Case{str(case)}.nii"),
-                            affine=patient_image_info,
-                            Z_slice=max_z_slice,
-                            pad_value=pt_pad_value
-                        )
+            for patient in all_mod_3dnparr_dict:
+                for z in all_mod_3dnparr_dict[patient]['ct']:
+                    fig = plt.figure()
+                    fig.add_subplot(2, 4, 1)
+                    plt.imshow(all_mod_3dnparr_dict[patient]['ct'][z], cmap="gray")
+                    plt.title("CT")
+                    plt.axis('off')
+                    fig.add_subplot(2, 4, 2)
+                    plt.imshow(all_mod_3dnparr_dict[patient]['mr'][z], cmap="gray")
+                    plt.title("MR")
+                    plt.axis('off')
+                    fig.add_subplot(2, 4, 3)
+                    plt.imshow(all_mod_3dnparr_dict[patient]['pt'][z])
+                    plt.title("PT")
+                    plt.axis('off')
+                    fig.add_subplot(2, 4, 4)
+                    plt.imshow(all_mod_3dnparr_dict[patient]['gt'][z])
+                    plt.title("GT")
+                    plt.axis('off')
+                    if all_mod_3dnparr_dict[patient]['case1']:
+                        fig.add_subplot(2, 4, 5)
+                        plt.imshow(all_mod_3dnparr_dict[patient]['case1'][z])
+                        plt.title("Case1")
+                        plt.axis('off')
+                    if all_mod_3dnparr_dict[patient]['case2']:
+                        fig.add_subplot(2, 4, 6)
+                        plt.imshow(all_mod_3dnparr_dict[patient]['case2'][z])
+                        plt.title("Case2")
+                        plt.axis('off')
+                    if all_mod_3dnparr_dict[patient]['case3']:
+                        fig.add_subplot(2, 4, 7)
+                        plt.imshow(all_mod_3dnparr_dict[patient]['case3'][z])
+                        plt.title("Case3")
+                        plt.axis('off')
+                    if all_mod_3dnparr_dict[patient]['case4']:
+                        fig.add_subplot(2, 4, 8)
+                        plt.imshow(all_mod_3dnparr_dict[patient]['case4'][z])
+                        plt.title("Case4")
+                        plt.axis('off')
+
+                    fig.suptitle(f"{patient}_{z}")
+                    plt.tight_layout()
+                    plt.savefig(os.path.join(output_dir, patient, f"{z}.png"))
+                    plt.close()

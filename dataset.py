@@ -4,17 +4,38 @@ import numpy as np
 from torchvision import transforms
 import random
 from scipy.ndimage import rotate
+import json
 
 class NTUH_dataset(Dataset):
-    def __init__(self, root_dir, dataset_type="train", case=4, min_max_scaler=None, DataAugmentation=False, resize_image_size=False):
+    def __init__(self, root_dir, dataset_type="train", fold=1, case=4, min_max_scaler=None, DataAugmentation=False, resize_image_size=False):
         super().__init__()
         self.root_dir = root_dir
+        json_file = [f for f in os.listdir(root_dir) if f.endswith(".json")]
+        with open(os.path.join(root_dir, json_file[0]), 'r') as openfile:
+            # Reading from json file
+            json_object = json.load(openfile)
+            K = len(json_object)
+            val_index = (fold + K - 3) % K
+            test_index = (fold + K - 2) % K
+
+        if dataset_type == "train":
+            select_groups = [i for i in range(10) if i != val_index and i != test_index]
+        elif dataset_type == "val":
+            select_groups = [val_index]
+        elif dataset_type == "test":
+            select_groups = [test_index]
+        
         self.dataset_type = dataset_type
-        self.case = case
-        self.train_files = os.listdir(os.path.join(root_dir, dataset_type, "data"))
+        self.train_files = []
+        for group_num in select_groups:
+            for data_name in os.listdir(os.path.join(root_dir, f"group{group_num}", "data")):
+                self.train_files.append((str(group_num), data_name))
+
         self.DataAugmentation = DataAugmentation
         self.min_max_scaler = min_max_scaler
         self.resize_image_size = resize_image_size
+
+        self.case = case
         if case == 1: # PT only
             self.min_max_scaler = [self.min_max_scaler[2]]
         elif case == 2: # CT & PT
@@ -48,10 +69,10 @@ class NTUH_dataset(Dataset):
         return data
     
     def __getitem__(self, index):
-        data_name = self.train_files[index]
+        group_num, data_name = self.train_files[index]
 
-        data = np.load(os.path.join(self.root_dir, self.dataset_type, "data", data_name))
-        ground_truth = np.load(os.path.join(self.root_dir, self.dataset_type, "ground_truth", data_name))
+        data = np.load(os.path.join(self.root_dir, f"group{group_num}", "data", data_name))
+        ground_truth = np.load(os.path.join(self.root_dir, f"group{group_num}", "ground_truth", data_name))
 
         data = self.parse_data(data, self.case)
         h = data.shape[0]
@@ -139,10 +160,9 @@ def rotate_img(img, angle=10, bg_patch=(5,5)):
 
 if __name__ == "__main__":
     train_dataset = NTUH_dataset(
-        root_dir="/home/kszuyen/MMIO_Low-Dose_PET_Enhancement/2d_data_LowDose_with_T1_fold1",
+        root_dir="/home/kszuyen/MMIO_Low-Dose_PET_Enhancement/LowDose_2d_data",
         dataset_type="train",
-        min_max_scaler=[(-63.38726043701172, 131.9373779296875), (0.0, 3361.0), (-4348.736393213272, 51885.97814440727)],
-        DataAugmentation=False,
+        fold=2,
         case=4
     )
     data, gt = train_dataset[0]

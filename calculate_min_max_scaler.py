@@ -3,14 +3,13 @@ import torch
 from dataset import NTUH_dataset
 from tqdm import tqdm
 
-
-
-def calculate_min_max_scaler(root_dir):
+def calculate_min_max_scaler(root_dir, fold):
     train_dataset = NTUH_dataset(
         root_dir=root_dir,
         dataset_type="train",
         min_max_scaler=None,
         DataAugmentation=False,
+        fold=fold
     )
 
     ct_min = torch.min(train_dataset[0][0][0,:,:])
@@ -43,8 +42,10 @@ def calculate_min_max_scaler(root_dir):
 
 
 if __name__ == "__main__":
-    root_dir = "/home/kszuyen/MMIO_Low-Dose_PET_Enhancement/2d_data_LowDose_with_T1_fold1"
+    for fold in tqdm(range(1, 11)):
 
-    min_max = calculate_min_max_scaler(root_dir)
-    print("[(ct_min, ct_max), (mr_min, mr_max), (pt_min, pt_max)]: ")
-    print(min_max)
+        root_dir = f"/home/kszuyen/MMIO_Low-Dose_PET_Enhancement/2d_data_LowDose_with_T1_fold{fold}"
+
+        min_max = calculate_min_max_scaler(root_dir)
+        print("[(ct_min, ct_max), (mr_min, mr_max), (pt_min, pt_max)]: ")
+        print(min_max)
