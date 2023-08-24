@@ -35,9 +35,9 @@ def load_config(project_name, project_results_dir, fold, case, batch_size):
     else:
         print("""Case error, please select case 1, 2, 3 or 4:
         1: PT only
-        2: CT & PT
-        3: MR & PT
-        4: CT, MR & PT
+        2: PT & CT
+        3: PT & MR
+        4: PT & CT & MR
         """)
         sys.exit()
 
