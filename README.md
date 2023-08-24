@@ -23,13 +23,13 @@ pip install -r requirements.txt
 
 ## SPLIT PATIENTS
 
-Select a project_name: "LowDose" or "EarlyFrame", and run
+Select a project_name: **LowDose** or **EarlyFrame**, and run
 ```
 python split.py -P <project_name>
 ```
 This will split the original 3d nifti data into 2d data for training.
 ### You can also add arguments:
-- total_fold: How many folds you want for the training, this will split the patients into N groups. Default: 10.
+- total_fold: How many folds you want for the training, and it will split the patients into N groups. Default: 10.
 - split_json_fild: Specify the path to an already split json file if you want to split the patients into the same groups as the json file.
 
 ## START TRAINING
@@ -44,7 +44,7 @@ bash train.sh
 ```
 
 ## INFERENCE
-Select the project_name in `inference_all.sh` and run
+Select the project_name in **inference_all.sh** and run
 ```
 bash inference_all.sh
 ```
