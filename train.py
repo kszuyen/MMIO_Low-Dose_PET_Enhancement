@@ -28,9 +28,9 @@ def get_parser():
         "--case", 
         help="""
         1: PT only
-        2: CT & PT
-        3: MR & PT
-        4: CT, MR & PT
+        2: PT & CT
+        3: PT & MR
+        4: PT & CT & MR
         """,
         type=int, default=4
     )
