@@ -43,9 +43,10 @@ def _3dto2d(project_name, data_dir, split, output_dir):
                 train_data = np.empty((IMAGE_SHAPE[0], IMAGE_SHAPE[1], TRAIN_CHANNELS))
                 for i, modality in enumerate({m:image_dict[m] for m in image_dict if m!=GROUND_TRUTH}):
                     train_data[:, :, i] = image_dict[modality][:, :, z]
-                if not np.isnan(train_data).any() and not np.isnan(image_dict[GROUND_TRUTH][:,:,z]).any():
-                    np.save(os.path.join(output_dir, f"group{f}", "data", f"{patient}_{z}.npy"), train_data)
-                    np.save(os.path.join(output_dir, f"group{f}", "ground_truth", f"{patient}_{z}.npy"), image_dict[GROUND_TRUTH][:,:,z])
+                train_data[np.isnan(train_data)] = 0.0
+                image_dict[GROUND_TRUTH][np.isnan(image_dict[GROUND_TRUTH])] = 0.0
+                np.save(os.path.join(output_dir, f"group{f}", "data", f"{patient}_{z}.npy"), train_data)
+                np.save(os.path.join(output_dir, f"group{f}", "ground_truth", f"{patient}_{z}.npy"), image_dict[GROUND_TRUTH][:,:,z])
 
     for patient in image_info:
         np.save(os.path.join(output_dir, "image_info", f"{patient}.npy"), np.array(image_info[patient]))
