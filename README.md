@@ -1,5 +1,13 @@
 # MMIO_Low-Dose_PET_Enhancement project
 
+This project trains a Unet with different input channels and see if different input modalities affects the quality of the output images.
+Case 1: PT only
+Case 2: PT & CT
+Case 3: PT & MR
+Case 4: PT & CT & MR
+
+## USAGE
+
 ## CLONE THIS REPO
 ```
 git clone https://github.com/kszuyen/MMIO_Low-Dose_PET_Enhancement.git
