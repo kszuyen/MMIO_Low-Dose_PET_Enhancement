@@ -21,13 +21,21 @@ Install other required packages
 pip install -r requirements.txt
 ```
 
+## SPLIT PATIENTS
+
+Select a project_name: "LowDose" or "EarlyFrame", and run
+```
+python split.py -P <project_name>
+```
+This will split the original 3d nifti data into 2d data for training.
+### You can also add arguments:
+- total_fold: How many folds you want for the training, this will split the patients into N groups. Default: 10.
+- split_json_fild: Specify the path to an already split json file if you want to split the patients into the same groups as the json file.
+
 ## START TRAINING
 
 ### Modify parameters in `train.sh`
-- DATA_DIR: the directory for the coregistered **ntuh dataset** (should include mr, ct, and pt 3d nifti images)
-- P_NAME: Select "LowDose" or "EarlyFrame" or "LowDose_with_T1"
-- TOTAL_FOLD: How much fold you want to split the patients
-- JSON_FILE: only change this if you want a specific path for the split json file. Default: "${TOTAL_FOLD}fold.json"
+- P_NAME: Select the project_name
 - NUM_EPOCHS: max number of epochs for each case
 - LEARNING_RATE: learning rate
 - CUDA: you can specify the gpu you want to train with. Default: 0.
@@ -35,4 +43,10 @@ pip install -r requirements.txt
 bash train.sh
 ```
 
+## INFERENCE
+Select the project_name in `inference_all.sh` and run
+```
+bash inference_all.sh
+```
+This will output the 2d png results, 3d nifti results, and the ssim, psnr scores for your training results.
 
