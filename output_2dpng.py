@@ -61,7 +61,6 @@ if __name__ == "__main__":
     json_file = os.path.join(DIR_PATH, f"{project_name}_2d_data", "split.json")
     max_z_slice = args.max_z_slice
 
-    # ct_pad_value, mr_pad_value, pt_pad_value = calculate_min_value(os.path.join(DIR_PATH, f"2d_data_{project_name}_fold1"))
     ct_pad_value, mr_pad_value, pt_pad_value = 0., 0., 0.
     output_dir = os.path.join(DIR_PATH, f'{project_name}_output_2d_png')
     make_dir(output_dir)
