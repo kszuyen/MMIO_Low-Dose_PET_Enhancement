@@ -1,20 +1,20 @@
 # MMIO_Low-Dose_PET_Enhancement project
 
-This project trains a Unet with different input channels and see if different input modalities affects the quality of the output images.
-Case 1: PT only
-Case 2: PT & CT
-Case 3: PT & MR
-Case 4: PT & CT & MR
+This project trains a Unet with different input channels and see if different input modalities affects the quality of the output images.  
+Case 1: PT only  
+Case 2: PT & CT  
+Case 3: PT & MR  
+Case 4: PT & CT & MR  
 
 ## USAGE
 
-## CLONE THIS REPO
+### CLONE THIS REPO
 ```
 git clone https://github.com/kszuyen/MMIO_Low-Dose_PET_Enhancement.git
 cd MMIO_Low-Dose_PET_Enhancement
 ```
 
-## CREATE ENVIRONMENT
+### CREATE ENVIRONMENT
 ```
 conda create -n <env_name> python=3.8
 conda activate <env_name>
@@ -29,20 +29,20 @@ Install other required packages
 pip install -r requirements.txt
 ```
 
-## SPLIT PATIENTS
+### SPLIT PATIENTS
 
 Select a project_name: **LowDose** or **EarlyFrame**, and run
 ```
 python split.py -P <project_name>
 ```
 This will split the original 3d nifti data into 2d data for training.
-### You can also add arguments:
+#### You can also add arguments:
 - total_fold: How many folds you want for the training, and it will split the patients into N groups. Default: 10.
 - split_json_fild: Specify the path to an already split json file if you want to split the patients into the same groups as the json file.
 
-## START TRAINING
+### START TRAINING
 
-### Modify parameters in `train.sh`
+#### Modify parameters in `train.sh`
 - P_NAME: Select the project_name
 - NUM_EPOCHS: max number of epochs for each case
 - LEARNING_RATE: learning rate
@@ -51,7 +51,7 @@ This will split the original 3d nifti data into 2d data for training.
 bash train.sh
 ```
 
-## INFERENCE
+### INFERENCE
 Select the project_name in **inference_all.sh** and run
 ```
 bash inference_all.sh
