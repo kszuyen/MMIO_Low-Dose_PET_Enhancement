@@ -1,5 +1,5 @@
 # MMIO_Low-Dose_PET_Enhancement project
-## DOES NOT INCLUDE DATA IN THIS REPOSITORY
+**DOES NOT INCLUDE DATA IN THIS REPOSITORY**
 
 This project trains a Unet with different input channels and see if different input modalities affects the quality of the output images.  
 Case 1: PT only  
