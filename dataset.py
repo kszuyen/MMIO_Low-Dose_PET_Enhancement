@@ -19,7 +19,7 @@ class NTUH_dataset(Dataset):
             test_index = (fold + K - 2) % K
 
         if dataset_type == "train":
-            select_groups = [i for i in range(10) if i != val_index and i != test_index]
+            select_groups = [i for i in range(K) if i != val_index and i != test_index]
         elif dataset_type == "val":
             select_groups = [val_index]
         elif dataset_type == "test":
