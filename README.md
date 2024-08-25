@@ -1,7 +1,7 @@
 # MMIO_Low-Dose_PET_Enhancement project
 **DOES NOT INCLUDE DATA IN THIS REPOSITORY**
 
-This project trains a Unet with different input channels and see if different input modalities affects the quality of the output images.  
+This project involves training a U-Net model with various input channels to evaluate how different input modalities impact the quality of the output images.  
 Case 1: PT only  
 Case 2: PT & CT  
 Case 3: PT & MR  
