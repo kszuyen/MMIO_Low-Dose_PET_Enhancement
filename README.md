@@ -1,4 +1,4 @@
-# MMIO_Low-Dose_PET_Enhancement project (Directed by Chen KT)
+# MMIO Low-Dose PET Enhancement project - Directed by Chen KT
 **DOES NOT INCLUDE DATA IN THIS REPOSITORY**
 
 This project involves training a U-Net model with various input channels to evaluate how different input modalities impact the quality of the output images.  
